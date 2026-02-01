@@ -1,4 +1,0 @@
-{
-  "buildCommand": "echo 'Build complete'",
-  "devCommand": "fastapi dev app/main.py"
-}
