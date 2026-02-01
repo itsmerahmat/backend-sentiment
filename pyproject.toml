@@ -3,6 +3,23 @@ name = "sentiment-api"
 version = "1.0.0"
 description = "Instagram Sentiment Analysis API"
 requires-python = ">=3.10"
+dependencies = [
+    "fastapi[standard]==0.128.0",
+    "pydantic==2.12.5",
+    "pydantic-settings==2.7.1",
+    "sqlmodel==0.0.31",
+    "psycopg2-binary==2.9.10",
+    "python-jose[cryptography]==3.3.0",
+    "bcrypt==4.2.1",
+    "python-dotenv==1.0.1",
+    "pytest==8.3.4",
+    "alembic==1.14.0",
+    "apify-client==2.4.0",
+    "transformers>=4.35.0",
+    "onnxruntime>=1.16.0",
+    "numpy>=1.24.0",
+    "Sastrawi>=1.0.1",
+]
 
 [project.scripts]
 app = "app.main:app"
