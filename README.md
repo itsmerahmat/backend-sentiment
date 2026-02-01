@@ -10,7 +10,6 @@ A FastAPI backend for Instagram sentiment analysis with dual sentiment analysis 
 - 🧠 **IndoBERT Sentiment Analysis** - Deep learning-based sentiment analysis using fine-tuned IndoBERT model (ONNX)
 - 📖 **Lexicon Sentiment Analysis** - Rule-based sentiment analysis using Indonesian word dictionary (10,000+ words)
 - 🗃️ **PostgreSQL Database** - Robust data storage with SQLModel ORM
-- 🔄 **Database Migrations** - Alembic for schema versioning
 - ⚛️ **React SPA Support** - Serve React build as static files
 
 ## Project Structure
@@ -123,12 +122,12 @@ APIFY_API_TOKEN=your-apify-token-here
 
 ### Development
 ```bash
-fastapi dev app/main.py
+.venv/Scripts/python.exe -m fastapi dev app/main.py
 ```
 
 ### Production
 ```bash
-fastapi run app/main.py
+.venv/Scripts/python.exe -m fastapi run app/main.py
 ```
 
 ## API Documentation
@@ -225,7 +224,6 @@ pytest
 - **FastAPI** - Modern Python web framework
 - **SQLModel** - SQL databases with Pydantic models
 - **PostgreSQL** - Database
-- **Alembic** - Database migrations
 - **bcrypt** - Password hashing
 - **python-jose** - JWT tokens
 - **Apify** - Instagram data scraping

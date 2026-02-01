@@ -7,6 +7,7 @@ yang sudah di-fine-tune dan di-export ke format ONNX.
 
 import json
 import re
+import unicodedata
 from functools import lru_cache
 from pathlib import Path
 from typing import List, Dict, Any, Tuple
@@ -22,84 +23,93 @@ from app.core.config import settings
 # Preprocessing Functions (sama dengan notebook)
 # ============================================================
 
+# Expanded slang dictionary (dari notebook)
 SLANG_DICT = {
-    'ga': 'tidak',
-    'gk': 'tidak',
-    'nggak': 'tidak',
-    'tdk': 'tidak',
-    'bgt': 'banget',
-    'bgtt': 'banget',
-    'bangettt': 'banget',
-    'dgn': 'dengan',
-    'klo': 'kalau',
-    'kl': 'kalau',
-    'dr': 'dari',
-    'sm': 'sama',
-    'sbg': 'sebagai',
-    'aja': 'saja',
-    'kaka': 'kak',
-    'kk': 'kak',
-    'makasih': 'terima kasih',
-    'mantul': 'mantap',
-    'enakkk': 'enak',
-    # Kosa kata banjar
-    'kd': 'tidak',
-    'kda': 'tidak',
-    'kada': 'tidak',
-    'jara': 'jera',
-    'lawas': 'lama',
-    'hangit': 'hangus',
-    'knp': 'kenapa',
-    'mksd': 'maksud',
-    'ulun': 'saya',
-    'capat': 'cepat',
-    'ketuju': 'suka',
-    'sgt': 'sangat',
-    'pian': 'kamu',
-    'rigat': 'kotor',
-    'hirang': 'hitam',
-    'lunuh': 'leleh',
-    'larang': 'mahal',
-    'kdd': 'tidak ada',
-    'bulik': 'pulang',
-    'hndk': 'mau',
-    'handak': 'mau'
+    'ga': 'tidak', 'gk': 'tidak', 'nggak': 'tidak', 'tdk': 'tidak', 'g': 'tidak',
+    'bgt': 'banget', 'bgtt': 'banget', 'bangettt': 'banget', 'bgt2': 'banget',
+    'dgn': 'dengan', 'klo': 'kalau', 'kl': 'kalau', 'dr': 'dari',
+    'sm': 'sama', 'sbg': 'sebagai', 'aja': 'saja', 'aj': 'saja',
+    'kaka': 'kak', 'kk': 'kak', 'kakak': 'kak',
+    'makasih': 'terima kasih', 'tq': 'terima kasih', 'thx': 'terima kasih',
+    'mantul': 'mantap', 'mantap': 'mantap', 'mantep': 'mantap',
+    'enakkk': 'enak', 'enakk': 'enak', 'enaak': 'enak',
+    'jelek': 'jelek', 'jlk': 'jelek', 'jeleek': 'jelek',
+    'buruk': 'buruk', 'brk': 'buruk',
+    'bagus': 'bagus', 'bgs': 'bagus', 'baguus': 'bagus',
+    'recommended': 'rekomen', 'recomended': 'rekomen', 'rekomen': 'rekomen',
+    'kecewa': 'kecewa', 'kcwa': 'kecewa', 'kecewaa': 'kecewa',
+    # Banjar
+    'kd': 'tidak', 'kda': 'tidak', 'kada': 'tidak',
+    'jara': 'jera', 'lawas': 'lama', 'hangit': 'hangus',
+    'knp': 'kenapa', 'mksd': 'maksud', 'ulun': 'saya',
+    'capat': 'cepat', 'ketuju': 'suka', 'sgt': 'sangat',
+    'pian': 'kamu', 'rigat': 'kotor', 'hirang': 'hitam',
+    'lunuh': 'leleh', 'larang': 'mahal', 'kdd': 'tidak ada',
 }
+
+# Emoji to sentiment mapping (dari notebook)
+EMOJI_DICT = {
+    '😀': 'senang', '😃': 'senang', '😄': 'sangat senang', '😁': 'sangat senang',
+    '😆': 'tertawa', '😅': 'lega', '🤣': 'tertawa', '😂': 'tertawa',
+    '😊': 'bahagia', '🥰': 'cinta', '😍': 'sangat suka', '🤩': 'kagum',
+    '😋': 'enak', '👍': 'bagus', '👏': 'bagus', '🙌': 'senang',
+    '🎉': 'senang', '❤️': 'suka', '💕': 'cinta', '🔥': 'keren',
+    '✨': 'bagus', '⭐': 'bagus', '💯': 'sempurna', '✅': 'bagus',
+    '👌': 'oke', '💪': 'semangat', '🏆': 'juara', '😎': 'keren',
+    '😞': 'kecewa', '😔': 'sedih', '😟': 'khawatir', '😕': 'bingung',
+    '🙁': 'sedih', '☹️': 'sedih', '😣': 'frustasi', '😖': 'frustasi',
+    '😫': 'lelah', '😩': 'kecewa', '🥺': 'sedih', '😢': 'sedih',
+    '😭': 'sangat sedih', '😤': 'marah', '😠': 'marah', '😡': 'marah',
+    '😱': 'takut', '😰': 'cemas', '😒': 'tidak suka', '🙄': 'bosan',
+    '😬': 'tidak nyaman', '🤢': 'jijik', '🤮': 'jijik', '👎': 'jelek',
+    '💔': 'sedih', '💩': 'jelek', '❌': 'tidak', '🚫': 'tidak',
+    '😐': 'netral', '😶': 'netral', '🤔': 'berpikir', '🤷': 'tidak tahu',
+}
+
+
+def convert_emoji_to_text(text: str) -> str:
+    """Convert emoji to sentiment text."""
+    for emoji_char, sentiment in EMOJI_DICT.items():
+        text = text.replace(emoji_char, f' {sentiment} ')
+    return text
 
 
 def remove_elongation(word: str) -> str:
     """Remove repeated characters (e.g., enakkk -> enak)."""
-    return re.sub(r'(.)\1{2,}', r'\1', word)
+    return re.sub(r'(.)\1{2,}', r'\1\1', word)
 
 
 def clean_text(text: str) -> str:
     """Clean text by removing URLs, mentions, hashtags, and special characters."""
+    # Normalize unicode
+    text = unicodedata.normalize('NFKC', str(text))
+    # Convert emoji to text first
+    text = convert_emoji_to_text(text)
     # Hapus URL
     text = re.sub(r'http\S+|www\S+', ' ', text)
-    # Hapus mention & hashtag
-    text = re.sub(r'@\w+|#\w+', ' ', text)
-    # Hapus emoji/simbol (keep huruf/angka)
-    text = re.sub(r'[^0-9a-zA-Z\s]', ' ', text)
+    # Hapus mention & hashtag (tapi keep textnya)
+    text = re.sub(r'[@#](\w+)', r'\1', text)
+    # Hapus special characters (keep unicode letters)
+    text = re.sub(r'[^\w\s]', ' ', text, flags=re.UNICODE)
     # Rapikan spasi
     text = re.sub(r'\s+', ' ', text).strip()
     return text
 
 
-def normalize_text(text: str, use_slang_normalization: bool = True) -> str:
+def normalize_text(text: str) -> str:
     """Normalize text with lowercasing and slang conversion."""
     text = text.lower()
     words = text.split()
-    normalized_words = []
+    normalized = []
     for w in words:
         w = remove_elongation(w)
-        if use_slang_normalization:
-            w = SLANG_DICT.get(w, w)
-        normalized_words.append(w)
-    return ' '.join(normalized_words)
+        w = SLANG_DICT.get(w, w)
+        normalized.append(w)
+    return ' '.join(normalized)
 
 
 def preprocess_text(text: str) -> str:
-    """Full preprocessing pipeline."""
+    """Full preprocessing pipeline (sama persis dengan notebook)."""
     text = clean_text(text)
     text = normalize_text(text)
     return text
@@ -165,12 +175,12 @@ class IndoBertSentimentModel:
         if preprocess:
             texts = [preprocess_text(t) for t in texts]
         
-        # Tokenize
+        # Tokenize (gunakan max_length yang sama dengan training: 128)
         encoded = self.tokenizer(
             texts,
             padding=True,
             truncation=True,
-            max_length=256,
+            max_length=128,
             return_tensors="np"
         )
         
