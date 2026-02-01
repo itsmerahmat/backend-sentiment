@@ -1,9 +1,4 @@
 {
   "buildCommand": "echo 'Build complete'",
-  "devCommand": "fastapi dev app/main.py",
-  "functions": {
-    "app/**": {
-      "maxDuration": 60
-    }
-  }
+  "devCommand": "fastapi dev app/main.py"
 }
