@@ -1,7 +1,6 @@
 {
   "buildCommand": "echo 'Build complete'",
   "devCommand": "fastapi dev app/main.py",
-  "envPrefix": "",
   "functions": {
     "app/**": {
       "maxDuration": 60
